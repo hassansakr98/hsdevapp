@@ -42,4 +42,7 @@ next-env.d.ts
 
 /data
 /deploy/backups
+/deploy/cpanel-build
+/deploy/cpanel-env.txt
+*.zip
 !.env.example
