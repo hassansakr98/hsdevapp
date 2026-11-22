@@ -1,23 +1,40 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* hsdevapp design tokens */
+@theme {
+  --font-sans: var(--font-plex), ui-sans-serif, system-ui, sans-serif;
+
+  --color-ink: #0f172a;        /* main text */
+  --color-muted: #64748b;      /* secondary text */
+  --color-line: #e5e7eb;       /* borders */
+  --color-canvas: #f5f6fa;     /* page background */
+  --color-panel: #ffffff;      /* cards */
+
+  --color-brand: #4338ca;      /* primary actions */
+  --color-brand-soft: #eef2ff;
+  --color-brand-ink: #312e81;
+
+  --color-good: #059669;
+  --color-good-soft: #ecfdf5;
+  --color-bad: #e11d48;
+  --color-bad-soft: #fff1f2;
+  --color-warn: #d97706;
+  --color-warn-soft: #fffbeb;
+
+  /* chart series */
+  --color-planned: #6366f1;
+  --color-late: #a5b4fc;
+  --color-actual: #f97316;
+  --color-cost: #0ea5e9;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+html { background: var(--color-canvas); color: var(--color-ink); }
+body { font-family: var(--font-sans); }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* numbers stay left-to-right inside Arabic text */
+.num { direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular-nums; }
+
+input[type="number"]::-webkit-inner-spin-button { opacity: 0.4; }
 
 @media print {
   @page { size: A4 portrait; margin: 12mm; }
@@ -25,10 +42,4 @@
   body { background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .report-section { break-inside: avoid; }
   .report table tr { break-inside: avoid; }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }

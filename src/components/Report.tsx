@@ -73,7 +73,7 @@ export default function Report({
     .slice(0, 3);
 
   return (
-    <div className="min-h-screen bg-gray-200 py-6 print:bg-white print:py-0">
+    <div dir="ltr" className="min-h-screen bg-gray-200 py-6 print:bg-white print:py-0">
       <div className="no-print mx-auto mb-4 flex max-w-[210mm] items-center gap-3">
         <button
           onClick={() => window.print()}

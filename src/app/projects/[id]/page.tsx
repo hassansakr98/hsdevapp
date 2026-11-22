@@ -1,20 +1,11 @@
-import { notFound } from "next/navigation";
-import Dashboard from "@/components/Dashboard";
+import Overview from "@/components/dashboard/Overview";
 import { requireUser } from "@/lib/current-user";
 import { getProject } from "@/lib/projects";
 
 export const instant = false;
 
-export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ProjectPage({ params }: PageProps<"/projects/[id]">) {
   const user = await requireUser();
   const { id } = await params;
-  const project = getProject(user.company_id, id);
-  if (!project) notFound();
-  return (
-    <Dashboard
-      project={project}
-      user={{ name: user.name, company: user.company_name }}
-      canDelete={user.role !== "member"}
-    />
-  );
+  return <Overview project={getProject(user.company_id, id)!} />;
 }

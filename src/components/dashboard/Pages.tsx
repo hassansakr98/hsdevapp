@@ -9,11 +9,11 @@ import {
   addDays, byWork, delayDays, evTrend, evm, groupBy, matrix, sCurve, snapshot, type GroupKey, type Metric,
 } from "@/lib/calc";
 import {
-  AMBER, BLUE, CORAL, Card, GREEN, Kpi, TEAL, fmtDate, money, monthLabel, pct, tooltipStyle, type PageProps,
+  AMBER, BAD, BLUE, CORAL, Card, GREEN, GRID, Kpi, TEAL, fmtDate, money, monthLabel, pct, tooltipStyle, type PageProps,
 } from "./ui";
 import { WorkTable } from "./Overview";
 
-const axis = { stroke: "#aaa", fontSize: 11 };
+const axis = { stroke: "#94a3b8", fontSize: 11 };
 const dateAxis = { dataKey: "date", tickFormatter: monthLabel, minTickGap: 40, ...axis };
 const pctFmt = (v: unknown) => `${Number(v).toFixed(2)}%`;
 const moneyFmt = (v: unknown): string => money(Number(v));
@@ -21,12 +21,12 @@ const H = ({ children }: { children: React.ReactNode }) => <div className="h-80"
 
 function Toggle<T extends string>({ value, options, onChange }: { value: T; options: [T, string][]; onChange: (v: T) => void }) {
   return (
-    <div className="flex gap-1 rounded-lg bg-[#1f2230] p-1 text-sm">
+    <div className="flex gap-1 rounded-lg bg-canvas p-1 text-sm">
       {options.map(([v, label]) => (
         <button
           key={v}
           onClick={() => onChange(v)}
-          className={`rounded px-3 py-1 ${value === v ? "bg-[#2ec4b6] text-[#12303a]" : "text-gray-300 hover:text-white"}`}
+          className={`rounded px-3 py-1 ${value === v ? "bg-brand text-white" : "text-muted hover:text-ink"}`}
         >
           {label}
         </button>
@@ -58,7 +58,7 @@ export function ProgressCurve({ project, acts, dataDate, metric }: PageProps & {
         <H>
           <ResponsiveContainer>
             <ComposedChart data={data}>
-              <CartesianGrid stroke="#3a3f52" vertical={false} />
+              <CartesianGrid stroke={GRID} vertical={false} />
               <XAxis {...dateAxis} />
               <YAxis {...axis} unit="%" domain={[0, 100]} />
               <Tooltip labelFormatter={(l) => fmtDate(String(l))} formatter={pctFmt} contentStyle={tooltipStyle} />
@@ -75,7 +75,7 @@ export function ProgressCurve({ project, acts, dataDate, metric }: PageProps & {
         <div className="h-60">
           <ResponsiveContainer>
             <BarChart data={data}>
-              <CartesianGrid stroke="#3a3f52" vertical={false} />
+              <CartesianGrid stroke={GRID} vertical={false} />
               <XAxis {...dateAxis} />
               <YAxis {...axis} unit="%" />
               <Tooltip labelFormatter={(l) => fmtDate(String(l))} formatter={pctFmt} contentStyle={tooltipStyle} />
@@ -95,7 +95,7 @@ export function ProgressMatrix({ project, acts, dataDate }: PageProps) {
   const [rowKey, setRow] = useState<GroupKey>("zone");
   const [colKey, setCol] = useState<GroupKey>("floor");
   const m = matrix(project, acts, dataDate, rowKey, colKey);
-  const color = (v: number) => (v >= -0.001 ? GREEN : v > -0.05 ? AMBER : CORAL);
+  const color = (v: number) => (v >= -0.001 ? GREEN : v > -0.05 ? "#d97706" : BAD);
   return (
     <Card title="Progress Matrix (Actual % / Planned %)">
       <div className="mb-3 flex flex-wrap items-center gap-3 text-sm">
@@ -107,23 +107,23 @@ export function ProgressMatrix({ project, acts, dataDate }: PageProps) {
       <div className="overflow-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-[#6c6fc4]">
+            <tr className="bg-slate-50 text-muted">
               <th className="p-2 text-left" />
               {m.cols.map((c) => <th key={c} className="p-2">{c}</th>)}
             </tr>
           </thead>
           <tbody>
             {m.rows.map((r, i) => (
-              <tr key={r} className="border-b border-[#1f2230]">
-                <td className="whitespace-nowrap bg-black p-2 font-medium">{r}</td>
+              <tr key={r} className="border-b border-line">
+                <td className="whitespace-nowrap p-2 font-medium">{r}</td>
                 {m.cells[i].map((s, j) => (
                   <td key={j} className="p-1 text-center">
                     {s ? (
                       <div className="rounded p-1.5" style={{ background: `${color(s.variancePct)}33`, border: `1px solid ${color(s.variancePct)}` }}>
                         <div className="font-semibold">{pct(s.actualPct, 1)}</div>
-                        <div className="text-xs text-gray-300">of {pct(s.plannedPct, 1)}</div>
+                        <div className="text-xs text-muted">of {pct(s.plannedPct, 1)}</div>
                       </div>
-                    ) : <span className="text-gray-600">—</span>}
+                    ) : <span className="text-slate-300">—</span>}
                   </td>
                 ))}
               </tr>
@@ -131,10 +131,10 @@ export function ProgressMatrix({ project, acts, dataDate }: PageProps) {
           </tbody>
         </table>
       </div>
-      <div className="mt-3 flex gap-4 text-xs text-gray-300">
+      <div className="mt-3 flex gap-4 text-xs text-muted">
         <span><span className="inline-block h-2 w-2 rounded-full" style={{ background: GREEN }} /> On / ahead</span>
-        <span><span className="inline-block h-2 w-2 rounded-full" style={{ background: AMBER }} /> Behind &lt; 5%</span>
-        <span><span className="inline-block h-2 w-2 rounded-full" style={{ background: CORAL }} /> Behind ≥ 5%</span>
+        <span><span className="inline-block h-2 w-2 rounded-full" style={{ background: "#d97706" }} /> Behind &lt; 5%</span>
+        <span><span className="inline-block h-2 w-2 rounded-full" style={{ background: BAD }} /> Behind ≥ 5%</span>
       </div>
     </Card>
   );
@@ -157,9 +157,9 @@ export function PlannedActualBars({ project, acts, dataDate }: PageProps) {
       <div style={{ height: Math.max(300, data.length * 34) }}>
         <ResponsiveContainer>
           <BarChart data={data} layout="vertical" margin={{ left: 40 }}>
-            <CartesianGrid stroke="#3a3f52" horizontal={false} />
+            <CartesianGrid stroke={GRID} horizontal={false} />
             <XAxis type="number" domain={[0, 100]} unit="%" {...axis} />
-            <YAxis type="category" dataKey="name" width={190} stroke="#ddd" fontSize={11} />
+            <YAxis type="category" dataKey="name" width={190} stroke="#475569" fontSize={11} />
             <Tooltip formatter={(v) => `${v}%`} contentStyle={tooltipStyle} />
             <Legend />
             <Bar dataKey="Early" name="Early Planned %" fill={TEAL} barSize={7} />
@@ -183,7 +183,7 @@ export function ActivityTrendPct({ project, acts, dataDate }: PageProps) {
       <Card title="Activity Progress Trend %">
         <label className="mb-3 flex items-center gap-2 text-sm">
           Type of Work
-          <select value={work} onChange={(e) => setWork(e.target.value)} className="rounded border border-gray-500 bg-[#1f2230] px-2 py-1 text-[#2ec4b6]">
+          <select value={work} onChange={(e) => setWork(e.target.value)} className="rounded border border-line bg-panel px-2 py-1 text-brand">
             <option>All</option>
             {works.map((w) => <option key={w}>{w}</option>)}
           </select>
@@ -191,7 +191,7 @@ export function ActivityTrendPct({ project, acts, dataDate }: PageProps) {
         <H>
           <ResponsiveContainer>
             <LineChart data={data}>
-              <CartesianGrid stroke="#3a3f52" vertical={false} />
+              <CartesianGrid stroke={GRID} vertical={false} />
               <XAxis {...dateAxis} />
               <YAxis {...axis} unit="%" />
               <Tooltip labelFormatter={(l) => fmtDate(String(l))} formatter={pctFmt} contentStyle={tooltipStyle} />
@@ -226,7 +226,7 @@ export function ActivityTrendEV({ project, acts, dataDate }: PageProps) {
         <H>
           <ResponsiveContainer>
             <LineChart data={data}>
-              <CartesianGrid stroke="#3a3f52" vertical={false} />
+              <CartesianGrid stroke={GRID} vertical={false} />
               <XAxis {...dateAxis} />
               <YAxis {...axis} tickFormatter={moneyFmt} />
               <Tooltip labelFormatter={(l) => fmtDate(String(l))} formatter={moneyFmt} contentStyle={tooltipStyle} />
@@ -251,14 +251,14 @@ export function CostVarianceTrend({ project, acts, dataDate }: PageProps) {
         <H>
           <ResponsiveContainer>
             <ComposedChart data={data}>
-              <CartesianGrid stroke="#3a3f52" vertical={false} />
+              <CartesianGrid stroke={GRID} vertical={false} />
               <XAxis {...dateAxis} />
               <YAxis {...axis} tickFormatter={moneyFmt} />
               <Tooltip labelFormatter={(l) => fmtDate(String(l))} formatter={moneyFmt} contentStyle={tooltipStyle} />
               <Legend />
               <ReferenceLine y={0} stroke="#888" />
               <Bar dataKey="cv" name="CV">
-                {data.map((d) => <Cell key={d.date} fill={d.cv >= 0 ? GREEN : CORAL} />)}
+                {data.map((d) => <Cell key={d.date} fill={d.cv >= 0 ? GREEN : BAD} />)}
               </Bar>
               <Line dataKey="sv" name="SV" stroke={TEAL} strokeWidth={2} dot={false} />
             </ComposedChart>
@@ -269,7 +269,7 @@ export function CostVarianceTrend({ project, acts, dataDate }: PageProps) {
         <div className="h-60">
           <ResponsiveContainer>
             <LineChart data={data}>
-              <CartesianGrid stroke="#3a3f52" vertical={false} />
+              <CartesianGrid stroke={GRID} vertical={false} />
               <XAxis {...dateAxis} />
               <YAxis {...axis} domain={["auto", "auto"]} />
               <Tooltip labelFormatter={(l) => fmtDate(String(l))} formatter={(v) => Number(v).toFixed(3)} contentStyle={tooltipStyle} />
@@ -302,7 +302,7 @@ export function DelayTrend({ project, acts, dataDate }: PageProps) {
         <H>
           <ResponsiveContainer>
             <ComposedChart data={data}>
-              <CartesianGrid stroke="#3a3f52" vertical={false} />
+              <CartesianGrid stroke={GRID} vertical={false} />
               <XAxis {...dateAxis} />
               <YAxis {...axis} />
               <Tooltip labelFormatter={(l) => fmtDate(String(l))} contentStyle={tooltipStyle} />
@@ -333,13 +333,13 @@ export function CostVarianceBreakdown({ project, acts, dataDate }: PageProps) {
         <div style={{ height: Math.max(260, rows.length * 30) }}>
           <ResponsiveContainer>
             <BarChart data={rows} layout="vertical" margin={{ left: 40 }}>
-              <CartesianGrid stroke="#3a3f52" horizontal={false} />
+              <CartesianGrid stroke={GRID} horizontal={false} />
               <XAxis type="number" {...axis} tickFormatter={moneyFmt} />
-              <YAxis type="category" dataKey="name" width={190} stroke="#ddd" fontSize={11} />
+              <YAxis type="category" dataKey="name" width={190} stroke="#475569" fontSize={11} />
               <Tooltip formatter={moneyFmt} contentStyle={tooltipStyle} />
               <ReferenceLine x={0} stroke="#888" />
               <Bar dataKey="cv" name="CV" barSize={14}>
-                {rows.map((r) => <Cell key={r.name} fill={r.cv >= 0 ? GREEN : CORAL} />)}
+                {rows.map((r) => <Cell key={r.name} fill={r.cv >= 0 ? GREEN : BAD} />)}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
@@ -347,21 +347,21 @@ export function CostVarianceBreakdown({ project, acts, dataDate }: PageProps) {
       </Card>
       <Card className="overflow-auto">
         <table className="w-full text-sm">
-          <thead className="bg-[#6c6fc4] text-left">
+          <thead className="bg-slate-50 text-muted text-left">
             <tr>{["Name", "BAC", "PV", "EV", "AC", "CV", "SV", "CPI", "SPI"].map((h) => <th key={h} className="p-1.5">{h}</th>)}</tr>
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.name} className="border-b border-[#1f2230]">
+              <tr key={r.name} className="border-b border-line">
                 <td className="p-1.5">{r.name}</td>
                 <td className="p-1.5">{money(r.bac)}</td>
                 <td className="p-1.5">{money(r.pv)}</td>
                 <td className="p-1.5">{money(r.ev)}</td>
                 <td className="p-1.5">{money(r.ac)}</td>
-                <td className={`p-1.5 ${r.cv < 0 ? "text-[#f26d6d]" : "text-[#3bb273]"}`}>{money(r.cv)}</td>
-                <td className={`p-1.5 ${r.sv < 0 ? "text-[#f26d6d]" : "text-[#3bb273]"}`}>{money(r.sv)}</td>
-                <td className={`p-1.5 ${r.cpi < 1 ? "text-[#f26d6d]" : ""}`}>{r.cpi.toFixed(2)}</td>
-                <td className={`p-1.5 ${r.spi < 1 ? "text-[#f26d6d]" : ""}`}>{r.spi.toFixed(2)}</td>
+                <td className={`p-1.5 ${r.cv < 0 ? "text-bad" : "text-good"}`}>{money(r.cv)}</td>
+                <td className={`p-1.5 ${r.sv < 0 ? "text-bad" : "text-good"}`}>{money(r.sv)}</td>
+                <td className={`p-1.5 ${r.cpi < 1 ? "text-bad" : ""}`}>{r.cpi.toFixed(2)}</td>
+                <td className={`p-1.5 ${r.spi < 1 ? "text-bad" : ""}`}>{r.spi.toFixed(2)}</td>
               </tr>
             ))}
           </tbody>
@@ -410,10 +410,10 @@ export function EarnedValueAnalysis({ project, acts, dataDate }: PageProps) {
           <table className="w-full text-sm">
             <tbody>
               {rows.map(([k, desc, v, bad]) => (
-                <tr key={k} className="border-b border-[#1f2230]">
-                  <td className="p-1.5 font-semibold text-[#f4b942]">{k}</td>
-                  <td className="p-1.5 text-gray-300">{desc}</td>
-                  <td className={`p-1.5 text-right font-semibold ${bad ? "text-[#f26d6d]" : ""}`}>{v}</td>
+                <tr key={k} className="border-b border-line">
+                  <td className="p-1.5 font-semibold text-brand">{k}</td>
+                  <td className="p-1.5 text-muted">{desc}</td>
+                  <td className={`p-1.5 text-right font-semibold ${bad ? "text-bad" : ""}`}>{v}</td>
                 </tr>
               ))}
             </tbody>
@@ -423,7 +423,7 @@ export function EarnedValueAnalysis({ project, acts, dataDate }: PageProps) {
           <H>
             <ResponsiveContainer>
               <BarChart data={bars}>
-                <CartesianGrid stroke="#3a3f52" vertical={false} />
+                <CartesianGrid stroke={GRID} vertical={false} />
                 <XAxis dataKey="name" {...axis} />
                 <YAxis {...axis} tickFormatter={moneyFmt} />
                 <Tooltip formatter={moneyFmt} contentStyle={tooltipStyle} />
