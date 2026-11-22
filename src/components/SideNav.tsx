@@ -2,19 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTr } from "./LangProvider";
 import { cx } from "./ui/kit";
-
-const ITEMS = [
-  { href: "/", label: "المشاريع", icon: "▦", match: (p: string) => p === "/" || p.startsWith("/projects/") && !p.startsWith("/projects/new") },
-  { href: "/projects/new", label: "مشروع جديد", icon: "+", match: (p: string) => p.startsWith("/projects/new") },
-  { href: "/methodology", label: "طريقة الحساب", icon: "ƒ", match: (p: string) => p.startsWith("/methodology") },
-];
 
 export function SideNav() {
   const path = usePathname();
+  const tr = useTr();
+  const items = [
+    { href: "/", label: tr("المشاريع", "Projects"), icon: "▦", match: (p: string) => p === "/" || (p.startsWith("/projects/") && !p.startsWith("/projects/new")) },
+    { href: "/projects/new", label: tr("مشروع جديد", "New project"), icon: "+", match: (p: string) => p.startsWith("/projects/new") },
+    { href: "/methodology", label: tr("طريقة الحساب", "Methodology"), icon: "ƒ", match: (p: string) => p.startsWith("/methodology") },
+  ];
   return (
     <nav className="space-y-1">
-      {ITEMS.map((i) => (
+      {items.map((i) => (
         <Link
           key={i.href}
           href={i.href}
@@ -33,13 +34,14 @@ export function SideNav() {
 
 export function ProjectTabs({ id }: { id: string }) {
   const path = usePathname();
+  const tr = useTr();
   const base = `/projects/${id}`;
   const tabs = [
-    { href: base, label: "نظرة عامة" },
-    { href: `${base}/analysis`, label: "التحليلات" },
-    { href: `${base}/activities`, label: "الأنشطة" },
-    { href: `${base}/progress`, label: "تحديث التقدم" },
-    { href: `${base}/settings`, label: "الإعدادات والسجل" },
+    { href: base, label: tr("نظرة عامة", "Overview") },
+    { href: `${base}/analysis`, label: tr("التحليلات", "Analysis") },
+    { href: `${base}/activities`, label: tr("الأنشطة", "Activities") },
+    { href: `${base}/progress`, label: tr("تحديث التقدم", "Progress update") },
+    { href: `${base}/settings`, label: tr("الإعدادات والسجل", "Settings & log") },
   ];
   return (
     <div className="no-print flex gap-1 overflow-x-auto border-b border-line">

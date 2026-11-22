@@ -1,4 +1,3 @@
-import type { Issue } from "@/lib/validation";
 
 export function cx(...c: (string | false | null | undefined)[]) {
   return c.filter(Boolean).join(" ");
@@ -16,7 +15,7 @@ export function Card({
     <section className={cx("rounded-2xl border border-line bg-panel shadow-[0_1px_2px_rgba(15,23,42,0.04)]", className)}>
       {(title || actions) && (
         <header className="flex flex-wrap items-start gap-3 border-b border-line px-5 py-3.5">
-          <div className="ml-auto">
+          <div className="me-auto">
             {title && <h2 className="text-[15px] font-semibold">{title}</h2>}
             {subtitle && <p className="mt-0.5 text-xs text-muted">{subtitle}</p>}
           </div>
@@ -31,7 +30,7 @@ export function Card({
 export function PageTitle({ title, subtitle, actions }: { title: string; subtitle?: React.ReactNode; actions?: React.ReactNode }) {
   return (
     <div className="mb-5 flex flex-wrap items-end gap-3">
-      <div className="ml-auto">
+      <div className="me-auto">
         <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
         {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
       </div>
@@ -86,34 +85,7 @@ export function Field({
   );
 }
 
-export function Issues({ errors, warnings, confirmable }: { errors?: Issue[]; warnings?: Issue[]; confirmable?: boolean }) {
-  if (!errors?.length && !warnings?.length) return null;
-  return (
-    <div className="space-y-3">
-      {!!errors?.length && (
-        <div className="rounded-xl border border-rose-200 bg-bad-soft p-3 text-sm text-bad">
-          <div className="mb-1 font-semibold">ما انحفظ شي. صحّح هالأخطاء:</div>
-          <ul className="list-inside list-disc space-y-0.5">
-            {errors.slice(0, 15).map((e, i) => <li key={i}>{e.message}</li>)}
-            {errors.length > 15 && <li>و {errors.length - 15} أخطاء كمان…</li>}
-          </ul>
-        </div>
-      )}
-      {!!warnings?.length && (
-        <div className="rounded-xl border border-amber-200 bg-warn-soft p-3 text-sm text-amber-800">
-          <div className="mb-1 font-semibold">⚠ تحذيرات بدها مراجعة</div>
-          <ul className="list-inside list-disc space-y-0.5">
-            {warnings.slice(0, 15).map((e, i) => <li key={i}>{e.message}</li>)}
-            {warnings.length > 15 && <li>و {warnings.length - 15} تحذيرات كمان…</li>}
-          </ul>
-          {confirmable && !errors?.length && (
-            <p className="mt-2 font-medium">إذا راجعتها ومتأكد إنها صح، اكبس الحفظ مرة تانية للتأكيد.</p>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
+export { Issues } from "./issues";
 
 export { Stat, type Formula } from "./stat";
 

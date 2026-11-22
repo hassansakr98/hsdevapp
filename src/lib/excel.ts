@@ -2,6 +2,7 @@ import readXlsxFile from "read-excel-file/node";
 import writeXlsxFile from "write-excel-file/node";
 import type { SheetData } from "write-excel-file/node";
 import type { Activity } from "./types";
+import { makeTr, type Lang } from "./i18n";
 
 export const ACTIVITY_COLUMNS = [
   "Activity ID", "Activity Name", "Zone", "Floor", "Category", "Type",
@@ -77,19 +78,21 @@ export interface ImportResult {
 }
 
 /** Parse an uploaded workbook. Collects row-level errors instead of throwing. */
-export async function parseWorkbook(buf: Buffer): Promise<ImportResult> {
+export async function parseWorkbook(buf: Buffer, lang: Lang = "ar"): Promise<ImportResult> {
+  const tr = makeTr(lang);
+  const row_ = (sheet: string, row: number) => tr(`${sheet} صف ${row}`, `${sheet} row ${row}`);
   const errors: string[] = [];
   let sheets: { sheet: string; data: Cell[][] }[];
   try {
     sheets = (await readXlsxFile(buf)) as { sheet: string; data: Cell[][] }[];
   } catch {
-    return { activities: [], dataDates: [], minDate: "", maxDate: "", errors: ["الملف ليس ملف Excel صالح (.xlsx)"] };
+    return { activities: [], dataDates: [], minDate: "", maxDate: "", errors: [tr("الملف ليس ملف Excel صالح (.xlsx)", "The file is not a valid Excel file (.xlsx)")] };
   }
   const find = (name: string) => sheets.find((s) => s.sheet.trim().toLowerCase() === name.toLowerCase());
   const actSheet = find("Activities");
   const progSheet = find("Progress");
-  if (!actSheet) errors.push('ما لقيت ورقة باسم "Activities"');
-  if (!progSheet) errors.push('ما لقيت ورقة باسم "Progress"');
+  if (!actSheet) errors.push(tr('ما لقيت ورقة باسم "Activities"', 'No sheet named "Activities" was found'));
+  if (!progSheet) errors.push(tr('ما لقيت ورقة باسم "Progress"', 'No sheet named "Progress" was found'));
   if (!actSheet || !progSheet) return { activities: [], dataDates: [], minDate: "", maxDate: "", errors };
 
   const index = (header: Cell[], cols: readonly string[], sheet: string) => {
@@ -97,7 +100,7 @@ export async function parseWorkbook(buf: Buffer): Promise<ImportResult> {
     const idx: Record<string, number> = {};
     for (const c of cols) {
       const i = h.indexOf(c.toLowerCase());
-      if (i < 0) errors.push(`ورقة ${sheet}: العمود "${c}" مش موجود`);
+      if (i < 0) errors.push(tr(`ورقة ${sheet}: العمود "${c}" مش موجود`, `Sheet ${sheet}: column "${c}" is missing`));
       idx[c] = i;
     }
     return idx;
@@ -119,11 +122,11 @@ export async function parseWorkbook(buf: Buffer): Promise<ImportResult> {
     const es = toIso(g("Early Start")), ef = toIso(g("Early Finish"));
     const ls = toIso(g("Late Start")) ?? es, lf = toIso(g("Late Finish")) ?? ef;
     const cost = toNum(g("Budget Cost")), mh = toNum(g("Budget Manhours")) ?? 0;
-    if (!id) return errors.push(`Activities صف ${row}: Activity ID فاضي`);
-    if (map.has(id)) return errors.push(`Activities صف ${row}: Activity ID "${id}" مكرر`);
-    if (!es || !ef) return errors.push(`Activities صف ${row}: تاريخ Early Start/Finish غير صالح`);
-    if (ef < es) return errors.push(`Activities صف ${row}: Early Finish قبل Early Start`);
-    if (cost === null || cost < 0) return errors.push(`Activities صف ${row}: Budget Cost لازم يكون رقم`);
+    if (!id) return errors.push(`${row_("Activities", row)}: ` + tr("Activity ID فاضي", "Activity ID is empty"));
+    if (map.has(id)) return errors.push(`${row_("Activities", row)}: ` + tr(`Activity ID "${id}" مكرر`, `Activity ID "${id}" is duplicated`));
+    if (!es || !ef) return errors.push(`${row_("Activities", row)}: ` + tr("تاريخ Early Start/Finish غير صالح", "Invalid Early Start/Finish date"));
+    if (ef < es) return errors.push(`${row_("Activities", row)}: ` + tr("Early Finish قبل Early Start", "Early Finish is before Early Start"));
+    if (cost === null || cost < 0) return errors.push(`${row_("Activities", row)}: ` + tr("Budget Cost لازم يكون رقم", "Budget Cost must be a number"));
     minDate = [minDate, es, ls!].sort()[0];
     maxDate = [maxDate, ef, lf!].sort()[2];
     map.set(id, {
@@ -143,20 +146,20 @@ export async function parseWorkbook(buf: Buffer): Promise<ImportResult> {
     const g = (c: (typeof PROGRESS_COLUMNS)[number]) => r[pi[c]] ?? null;
     const id = str(g("Activity ID"));
     const a = map.get(id);
-    if (!a) return errors.push(`Progress صف ${row}: Activity ID "${id}" مش موجود بورقة Activities`);
+    if (!a) return errors.push(`${row_("Progress", row)}: ` + tr(`Activity ID "${id}" مش موجود بورقة Activities`, `Activity ID "${id}" is not in the Activities sheet`));
     const d = toIso(g("Data Date"));
-    if (!d) return errors.push(`Progress صف ${row}: Data Date غير صالح`);
+    if (!d) return errors.push(`${row_("Progress", row)}: ` + tr("Data Date غير صالح", "Invalid Data Date"));
     // Actual % is always 0–100 (cumulative)
     const n = toNum(g("Actual %"));
-    if (n === null) return errors.push(`Progress صف ${row}: Actual % لازم يكون رقم`);
-    if (n < 0 || n > 100.01) return errors.push(`Progress صف ${row}: Actual % لازم يكون بين 0 و 100`);
+    if (n === null) return errors.push(`${row_("Progress", row)}: ` + tr("Actual % لازم يكون رقم", "Actual % must be a number"));
+    if (n < 0 || n > 100.01) return errors.push(`${row_("Progress", row)}: ` + tr("Actual % لازم يكون بين 0 و 100", "Actual % must be between 0 and 100"));
     const pct = n / 100;
     a.actualProgress[d] = Math.min(1, pct);
     a.actualCost[d] = toNum(g("Actual Cost")) ?? 0;
     dates.add(d);
   });
 
-  if (map.size === 0) errors.push("ورقة Activities فاضية");
+  if (map.size === 0) errors.push(tr("ورقة Activities فاضية", "The Activities sheet is empty"));
   return {
     activities: [...map.values()],
     dataDates: [...dates].sort(),

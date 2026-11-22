@@ -6,6 +6,7 @@ import { actualAt, plannedAt } from "@/lib/calc";
 import { removeDataDate, saveProgress, type ActionState } from "@/lib/manual-actions";
 import type { Project } from "@/lib/types";
 import { checkProgress, todayIso, type ProgressRow } from "@/lib/validation";
+import { useLang, useTr } from "./LangProvider";
 import { Badge, Card, Issues, btn, cx, fmtDate, inputCls, money, pct } from "./ui/kit";
 
 type Entry = { pct: string; cost: string };
@@ -16,6 +17,8 @@ export default function ProgressEditor({ project, canDelete }: { project: Projec
   const [q, setQ] = useState("");
   const [onlyActive, setOnlyActive] = useState(true);
   const [state, action, pending] = useActionState<ActionState, FormData>(saveProgress, undefined);
+  const tr = useTr();
+  const lang = useLang();
 
   const isExisting = dates.includes(dataDate);
   const prevDate = [...dates].reverse().find((d) => d < dataDate);
@@ -56,9 +59,9 @@ export default function ProgressEditor({ project, canDelete }: { project: Projec
   });
 
   const check = useMemo(
-    () => checkProgress(dataDate, rows, { contractStart: project.contractStart, existingDates: dates }),
+    () => checkProgress(dataDate, rows, { contractStart: project.contractStart, existingDates: dates }, lang),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [entries, dataDate, project, dates],
+    [entries, dataDate, project, dates, lang],
   );
   const rowErr = (id: string) => check.errors.filter((e) => e.row === id);
   const rowWarn = (id: string) => check.warnings.filter((e) => e.row === id);
@@ -91,8 +94,8 @@ export default function ProgressEditor({ project, canDelete }: { project: Projec
     return (
       <Card>
         <div className="py-10 text-center text-sm text-muted">
-          لازم تضيف أنشطة قبل ما تسجّل التقدم.{" "}
-          <Link href={`/projects/${project.id}/activities`} className="font-semibold text-brand underline">إضافة الأنشطة</Link>
+          {tr("لازم تضيف أنشطة قبل ما تسجّل التقدم.", "Add activities before recording progress.")}{" "}
+          <Link href={`/projects/${project.id}/activities`} className="font-semibold text-brand underline">{tr("إضافة الأنشطة", "Add activities")}</Link>
         </div>
       </Card>
     );
@@ -108,20 +111,20 @@ export default function ProgressEditor({ project, canDelete }: { project: Projec
       {needsConfirm && <input type="hidden" name="confirm" value="1" />}
 
       <div className="grid gap-4 lg:grid-cols-[340px_1fr]">
-        <Card title="تاريخ التحديث (Data Date)">
+        <Card title={tr("تاريخ التحديث (Data Date)", "Update date (Data Date)")}>
           <input type="date" value={dataDate} max={todayIso()} onChange={(e) => setDataDate(e.target.value)} className={inputCls} />
           {dateErr.map((e, i) => <p key={i} className="mt-2 text-xs text-bad">{e.message}</p>)}
           <div className="mt-3 text-xs text-muted">
             {isExisting ? (
-              <Badge tone="warn">عم تعدّل تحديث موجود</Badge>
+              <Badge tone="warn">{tr("عم تعدّل تحديث موجود", "Editing an existing update")}</Badge>
             ) : (
-              <Badge tone="brand">تحديث جديد</Badge>
+              <Badge tone="brand">{tr("تحديث جديد", "New update")}</Badge>
             )}
-            {prevDate && <p className="mt-2">القيم معبّاية من التحديث السابق <span className="num font-semibold">{fmtDate(prevDate)}</span>. عدّل بس اللي تغيّر.</p>}
+            {prevDate && <p className="mt-2">{tr("القيم معبّاية من التحديث السابق", "Values are carried over from the previous update")} <span className="num font-semibold">{fmtDate(prevDate)}</span>. {tr("عدّل بس اللي تغيّر.", "Only change what moved.")}</p>}
           </div>
           {dates.length > 0 && (
             <div className="mt-4">
-              <div className="mb-1.5 text-xs font-medium text-muted">التحديثات المسجّلة ({dates.length})</div>
+              <div className="mb-1.5 text-xs font-medium text-muted">{tr("التحديثات المسجّلة", "Recorded updates")} ({dates.length})</div>
               <div className="flex max-h-32 flex-wrap gap-1.5 overflow-auto">
                 {[...dates].reverse().map((d) => (
                   <button
@@ -138,10 +141,10 @@ export default function ProgressEditor({ project, canDelete }: { project: Projec
           )}
         </Card>
 
-        <Card title="النتيجة بعد هالتحديث" subtitle="بتتحدّث مباشرة وأنت عم تكتب">
+        <Card title={tr("النتيجة بعد هالتحديث", "Result after this update")} subtitle={tr("بتتحدّث مباشرة وأنت عم تكتب", "Updates live as you type")}>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Mini label="مخطط" value={pct(bac ? pv / bac : 0)} />
-            <Mini label="فعلي" value={pct(bac ? ev / bac : 0)} tone={ev < pv ? "bad" : "good"} />
+            <Mini label={tr("مخطط", "Planned")} value={pct(bac ? pv / bac : 0)} />
+            <Mini label={tr("فعلي", "Actual")} value={pct(bac ? ev / bac : 0)} tone={ev < pv ? "bad" : "good"} />
             <Mini label="SPI = EV ÷ PV" value={spi.toFixed(3)} sub={`${money(ev)} ÷ ${money(pv)}`} tone={spi < 1 ? "bad" : "good"} />
             <Mini label="CPI = EV ÷ AC" value={cpi.toFixed(3)} sub={`${money(ev)} ÷ ${money(ac)}`} tone={cpi < 1 ? "bad" : "good"} />
           </div>
@@ -149,15 +152,15 @@ export default function ProgressEditor({ project, canDelete }: { project: Projec
       </div>
 
       <Card
-        title="إنجاز الأنشطة"
-        subtitle="Actual % تراكمي من 0 لـ 100 · التكلفة الفعلية تراكمية لحد Data Date"
+        title={tr("إنجاز الأنشطة", "Activity progress")}
+        subtitle={tr("Actual % تراكمي من 0 لـ 100 · التكلفة الفعلية تراكمية لحد Data Date", "Actual % is cumulative 0–100 · actual cost is cumulative up to the data date")}
         actions={
           <div className="flex items-center gap-3">
             <label className="flex items-center gap-1.5 text-xs text-muted">
               <input type="checkbox" checked={onlyActive} onChange={(e) => setOnlyActive(e.target.checked)} />
-              الأنشطة الجارية بس
+              {tr("الأنشطة الجارية بس", "In-progress only")}
             </label>
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="بحث…" className={cx(inputCls, "w-40 py-1.5")} />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("بحث…", "Search…")} className={cx(inputCls, "w-40 py-1.5")} />
           </div>
         }
         pad={false}
@@ -166,12 +169,12 @@ export default function ProgressEditor({ project, canDelete }: { project: Projec
           <table className="w-full text-sm">
             <thead className="sticky top-0 z-10 bg-slate-50 text-xs text-muted">
               <tr>
-                <th className="px-4 py-2 text-right font-medium">النشاط</th>
-                <th className="px-3 py-2 text-left font-medium">مخطط اليوم</th>
-                <th className="px-3 py-2 text-left font-medium">السابق</th>
-                <th className="px-3 py-2 text-left font-medium">Actual %</th>
-                <th className="px-3 py-2 text-left font-medium">التكلفة الفعلية</th>
-                <th className="px-3 py-2 text-left font-medium">EV</th>
+                <th className="px-4 py-2 text-start font-medium">{tr("النشاط", "Activity")}</th>
+                <th className="px-3 py-2 text-end font-medium">{tr("مخطط اليوم", "Planned today")}</th>
+                <th className="px-3 py-2 text-end font-medium">{tr("السابق", "Previous")}</th>
+                <th className="px-3 py-2 text-end font-medium">Actual %</th>
+                <th className="px-3 py-2 text-end font-medium">{tr("التكلفة الفعلية", "Actual cost")}</th>
+                <th className="px-3 py-2 text-end font-medium">EV</th>
                 <th className="px-3 py-2" />
               </tr>
             </thead>
@@ -184,15 +187,15 @@ export default function ProgressEditor({ project, canDelete }: { project: Projec
                   <tr key={r.activityId} className={cx("border-t border-line align-top", errs.length ? "bg-bad-soft/60" : r.changed && "bg-brand-soft/40")}>
                     <td className="px-4 py-2">
                       <div className="font-medium">{r.activityName}</div>
-                      <div className="num text-right font-mono text-[11px] text-muted">{r.activityId}</div>
+                      <div className="num text-start font-mono text-[11px] text-muted">{r.activityId}</div>
                       {[...errs, ...warns].map((x, i) => (
                         <div key={i} className={cx("mt-1 text-[11px]", i < errs.length ? "text-bad" : "text-warn")}>
                           {x.message.replace(`${r.activityId}: `, "")}
                         </div>
                       ))}
                     </td>
-                    <td className="num px-3 py-2 text-left text-muted">{pct(r.planned, 1)}</td>
-                    <td className="num px-3 py-2 text-left text-muted">{r.prevPct.toFixed(1)}%</td>
+                    <td className="num px-3 py-2 text-end text-muted">{pct(r.planned, 1)}</td>
+                    <td className="num px-3 py-2 text-end text-muted">{r.prevPct.toFixed(1)}%</td>
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-1" dir="ltr">
                         <input
@@ -200,11 +203,11 @@ export default function ProgressEditor({ project, canDelete }: { project: Projec
                           value={e.pct}
                           onChange={(ev) => setE(r.activityId, "pct", ev.target.value)}
                           type="number" min={0} max={100} step="any"
-                          className={cx(inputCls, "w-20 py-1 text-left")}
+                          className={cx(inputCls, "w-20 py-1 text-end")}
                           aria-invalid={errs.length > 0}
                         />
                         <span className="text-xs text-muted">%</span>
-                        <button type="button" onClick={() => setE(r.activityId, "pct", "100")} className="rounded px-1 text-[10px] text-muted hover:bg-canvas" title="مكتمل">100</button>
+                        <button type="button" onClick={() => setE(r.activityId, "pct", "100")} className="rounded px-1 text-[10px] text-muted hover:bg-canvas" title={tr("مكتمل", "Complete")}>100</button>
                       </div>
                     </td>
                     <td className="px-3 py-2">
@@ -213,13 +216,13 @@ export default function ProgressEditor({ project, canDelete }: { project: Projec
                         value={e.cost}
                         onChange={(ev) => setE(r.activityId, "cost", ev.target.value)}
                         type="number" min={0} step="any" dir="ltr"
-                        className={cx(inputCls, "w-28 py-1 text-left")}
+                        className={cx(inputCls, "w-28 py-1 text-end")}
                         aria-invalid={errs.length > 0}
                       />
                     </td>
-                    <td className="num px-3 py-2 text-left text-xs text-muted">{money(r.budgetCost * ((Number.isFinite(r.pct) ? r.pct : 0) / 100))}</td>
+                    <td className="num px-3 py-2 text-end text-xs text-muted">{money(r.budgetCost * ((Number.isFinite(r.pct) ? r.pct : 0) / 100))}</td>
                     <td className="px-3 py-2 text-center">
-                      {errs.length ? <span title="خطأ">⛔</span> : warns.length ? <span title="تحذير">⚠️</span> : r.changed ? <span className="text-brand">●</span> : null}
+                      {errs.length ? <span title={tr("خطأ", "Error")}>⛔</span> : warns.length ? <span title={tr("تحذير", "Warning")}>⚠️</span> : r.changed ? <span className="text-brand">●</span> : null}
                     </td>
                   </tr>
                 );
@@ -238,7 +241,7 @@ export default function ProgressEditor({ project, canDelete }: { project: Projec
               })}
             </tbody>
           </table>
-          {shown.length === 0 && <p className="p-6 text-center text-sm text-muted">ما في أنشطة جارية بهالتاريخ. شيل علامة «الأنشطة الجارية بس» لتشوف الكل.</p>}
+          {shown.length === 0 && <p className="p-6 text-center text-sm text-muted">{tr("ما في أنشطة جارية بهالتاريخ. شيل علامة «الأنشطة الجارية بس» لتشوف الكل.", "No activities in progress on this date. Untick “In-progress only” to see all.")}</p>}
         </div>
       </Card>
 
@@ -249,21 +252,21 @@ export default function ProgressEditor({ project, canDelete }: { project: Projec
         )}
         <div className="mt-2 flex flex-wrap items-center gap-3">
           <button disabled={pending || check.errors.length > 0} className={btn("primary")}>
-            {pending ? "جاري الحفظ…" : needsConfirm ? "تأكيد وحفظ التحديث" : isExisting ? "حفظ التعديلات" : "حفظ التحديث"}
+            {pending ? tr("جاري الحفظ…", "Saving…") : needsConfirm ? tr("تأكيد وحفظ التحديث", "Confirm and save update") : isExisting ? tr("حفظ التعديلات", "Save changes") : tr("حفظ التحديث", "Save update")}
           </button>
           <span className="text-sm text-muted">
-            <span className="num">{changedCount}</span> نشاط متغيّر
+            <span className="num">{changedCount}</span> {tr("نشاط متغيّر", "changed")}
           </span>
-          {check.errors.length > 0 && <Badge tone="bad">{check.errors.length} خطأ</Badge>}
-          {check.warnings.length > 0 && <Badge tone="warn">{check.warnings.length} تحذير</Badge>}
+          {check.errors.length > 0 && <Badge tone="bad">{check.errors.length} {tr("خطأ", "errors")}</Badge>}
+          {check.warnings.length > 0 && <Badge tone="warn">{check.warnings.length} {tr("تحذير", "warnings")}</Badge>}
           {isExisting && canDelete && (
             <button
               formAction={removeDataDate}
               formNoValidate
-              onClick={(e) => { if (!confirm(`حذف تحديث ${dataDate} بالكامل؟ ما بينفع نرجّعه.`)) e.preventDefault(); }}
-              className={cx(btn("danger", "sm"), "mr-auto")}
+              onClick={(e) => { if (!confirm(tr(`حذف تحديث ${dataDate} بالكامل؟ ما بينفع نرجّعه.`, `Delete the whole ${dataDate} update? This can't be undone.`))) e.preventDefault(); }}
+              className={cx(btn("danger", "sm"), "ms-auto")}
             >
-              حذف هالتحديث
+              {tr("حذف هالتحديث", "Delete this update")}
             </button>
           )}
         </div>
@@ -275,9 +278,9 @@ export default function ProgressEditor({ project, canDelete }: { project: Projec
 function Mini({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: "good" | "bad" }) {
   return (
     <div className="rounded-xl bg-canvas p-3">
-      <div className="num text-left text-[11px] text-muted">{label}</div>
-      <div className={cx("num mt-1 text-left text-xl font-bold", tone === "good" && "text-good", tone === "bad" && "text-bad")}>{value}</div>
-      {sub && <div className="num text-left text-[11px] text-muted">{sub}</div>}
+      <div className="num text-end text-[11px] text-muted">{label}</div>
+      <div className={cx("num mt-1 text-end text-xl font-bold", tone === "good" && "text-good", tone === "bad" && "text-bad")}>{value}</div>
+      {sub && <div className="num text-end text-[11px] text-muted">{sub}</div>}
     </div>
   );
 }

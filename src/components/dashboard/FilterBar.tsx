@@ -3,11 +3,9 @@
 import { useMemo, useState } from "react";
 import { filterActivities } from "@/lib/calc";
 import type { Filters, Project } from "@/lib/types";
+import { useTr } from "../LangProvider";
 import { cx } from "../ui/kit";
 
-const LABELS: Record<keyof Filters, string> = {
-  zone: "Zone", floor: "الطابق", category: "التصنيف", type: "النوع", dataDate: "Data Date",
-};
 
 export function useFilters(project: Project) {
   const [f, setF] = useState<Filters>({
@@ -19,6 +17,10 @@ export function useFilters(project: Project) {
 }
 
 export function FilterBar({ project, f, setF }: { project: Project; f: Filters; setF: (fn: (f: Filters) => Filters) => void }) {
+  const tr = useTr();
+  const LABELS: Record<keyof Filters, string> = {
+    zone: "Zone", floor: tr("الطابق", "Floor"), category: tr("التصنيف", "Category"), type: tr("النوع", "Type"), dataDate: "Data Date",
+  };
   const uniq = (k: "zone" | "floor" | "category" | "type") =>
     ["All", ...[...new Set(project.activities.map((a) => a[k]))].sort()];
   const dates = project.dataDates.length ? [...project.dataDates].reverse() : [f.dataDate];
@@ -35,7 +37,7 @@ export function FilterBar({ project, f, setF }: { project: Project; f: Filters; 
           f[k] !== "All" && k !== "dataDate" ? "border-brand bg-brand-soft" : "border-line",
         )}
       >
-        {options.map((o) => <option key={o} value={o}>{o === "All" ? "الكل" : o}</option>)}
+        {options.map((o) => <option key={o} value={o}>{o === "All" ? tr("الكل", "All") : o}</option>)}
       </select>
     </label>
   );
@@ -53,16 +55,16 @@ export function FilterBar({ project, f, setF }: { project: Project; f: Filters; 
           onClick={() => setF((s) => ({ ...s, zone: "All", floor: "All", category: "All", type: "All" }))}
           className="text-xs font-medium text-brand hover:underline"
         >
-          مسح الفلاتر ({active})
+          {tr("مسح الفلاتر", "Clear filters")} ({active})
         </button>
       )}
       <a
         href={`/report/${project.id}?${new URLSearchParams({ ...f, print: "1" })}`}
         target="_blank"
         rel="noopener"
-        className="mr-auto rounded-lg border border-line px-3 py-1.5 text-xs font-medium hover:bg-canvas"
+        className="ms-auto rounded-lg border border-line px-3 py-1.5 text-xs font-medium hover:bg-canvas"
       >
-        ⬇ تقرير PDF
+        ⬇ {tr("تقرير PDF", "PDF report")}
       </a>
     </div>
   );

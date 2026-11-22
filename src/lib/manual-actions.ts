@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { actualAt } from "./calc";
 import { requireUser } from "./current-user";
+import { getLang } from "./i18n-server";
+import { makeTr } from "./i18n";
 import {
   activityHasProgress, activityIds, createEmptyProject, deleteActivity, deleteDataDate, getProject,
   getProjectMeta, logAudit, saveProgressRows, updateProjectMeta, upsertActivity,
@@ -24,40 +26,43 @@ const valuesOf = (f: FormData) =>
 
 async function projectFor(projectId: string) {
   const user = await requireUser();
+  const lang = await getLang();
+  const tr = makeTr(lang);
   const meta = getProjectMeta(user.company_id, projectId);
   if (!meta) throw new Error("Project not found");
-  return { user, meta };
+  return { user, meta, lang, tr };
 }
 
 /* ---------- project ---------- */
 
 export async function createManualProject(_: ActionState, f: FormData): Promise<ActionState> {
   const user = await requireUser();
+  const lang = await getLang();
   const p = { name: s(f, "name"), contractStart: s(f, "contractStart"), contractFinish: s(f, "contractFinish") };
-  const { errors } = checkProject(p);
+  const { errors } = checkProject(p, lang);
   if (errors.length) return { errors, values: valuesOf(f) };
   const id = createEmptyProject(user.company_id, user.id, p);
-  logAudit(id, user, "إنشاء المشروع", `${p.contractStart} → ${p.contractFinish}`);
+  logAudit(id, user, "project.create", `${p.contractStart} → ${p.contractFinish}`);
   revalidatePath("/");
   redirect(`/projects/${id}/activities`);
 }
 
 export async function saveProjectSettings(_: ActionState, f: FormData): Promise<ActionState> {
-  const { user, meta } = await projectFor(s(f, "projectId"));
+  const { user, meta, lang, tr } = await projectFor(s(f, "projectId"));
   const p = { name: s(f, "name"), contractStart: s(f, "contractStart"), contractFinish: s(f, "contractFinish") };
-  const { errors } = checkProject(p);
+  const { errors } = checkProject(p, lang);
   if (errors.length) return { errors, values: valuesOf(f) };
   updateProjectMeta(meta.id, p);
-  logAudit(meta.id, user, "تعديل بيانات المشروع",
+  logAudit(meta.id, user, "project.update",
     `${meta.name} (${meta.contract_start} → ${meta.contract_finish}) ⟵ ${p.name} (${p.contractStart} → ${p.contractFinish})`);
   revalidatePath(`/projects/${meta.id}`, "layout");
-  return { ok: true, message: "انحفظت بيانات المشروع" };
+  return { ok: true, message: tr("انحفظت بيانات المشروع", "Project details saved") };
 }
 
 /* ---------- activities ---------- */
 
 export async function saveActivity(_: ActionState, f: FormData): Promise<ActionState> {
-  const { user, meta } = await projectFor(s(f, "projectId"));
+  const { user, meta, lang, tr } = await projectFor(s(f, "projectId"));
   const originalId = s(f, "originalId") || null;
   const a = {
     id: s(f, "id"),
@@ -80,29 +85,29 @@ export async function saveActivity(_: ActionState, f: FormData): Promise<ActionS
     contractFinish: meta.contract_finish,
     takenIds: taken,
     hasProgress: originalId ? activityHasProgress(meta.id, originalId) : false,
-  });
+  }, lang);
   if (errors.length) return { errors, warnings, values: valuesOf(f) };
   if (warnings.length && f.get("confirm") !== "1") return { warnings, values: { ...valuesOf(f), confirm: "1" } };
 
   upsertActivity(meta.id, originalId, a);
-  logAudit(meta.id, user, originalId ? "تعديل نشاط" : "إضافة نشاط",
-    `${a.id} · ${a.name} · ميزانية ${a.budgetCost} · ${a.earlyStart} → ${a.earlyFinish}`);
+  logAudit(meta.id, user, originalId ? "activity.edit" : "activity.add",
+    `${a.id} · ${a.name} · BAC ${a.budgetCost} · ${a.earlyStart} → ${a.earlyFinish}`);
   revalidatePath(`/projects/${meta.id}`, "layout");
-  return { ok: true, message: originalId ? `انحفظ النشاط ${a.id}` : `انضاف النشاط ${a.id}` };
+  return { ok: true, message: originalId ? tr(`انحفظ النشاط ${a.id}`, `Activity ${a.id} saved`) : tr(`انضاف النشاط ${a.id}`, `Activity ${a.id} added`) };
 }
 
 export async function removeActivity(f: FormData) {
   const { user, meta } = await projectFor(s(f, "projectId"));
   const id = s(f, "activityId");
   deleteActivity(meta.id, id);
-  logAudit(meta.id, user, "حذف نشاط", id);
+  logAudit(meta.id, user, "activity.delete", id);
   revalidatePath(`/projects/${meta.id}`, "layout");
 }
 
 /* ---------- progress ---------- */
 
 export async function saveProgress(_: ActionState, f: FormData): Promise<ActionState> {
-  const { user, meta } = await projectFor(s(f, "projectId"));
+  const { user, meta, lang, tr } = await projectFor(s(f, "projectId"));
   const project = getProject(user.company_id, meta.id)!;
   const dataDate = s(f, "dataDate");
   const dates = project.dataDates;
@@ -127,25 +132,25 @@ export async function saveProgress(_: ActionState, f: FormData): Promise<ActionS
       nextCost: nextDate ? a.actualCost[nextDate] : undefined,
     });
   }
-  if (rows.length === 0) return { errors: [{ message: "ما في أنشطة لتحديثها. ضيف أنشطة أول" }] };
+  if (rows.length === 0) return { errors: [{ message: tr("ما في أنشطة لتحديثها. ضيف أنشطة أول", "No activities to update. Add activities first") }] };
 
-  const { errors, warnings } = checkProgress(dataDate, rows, { contractStart: meta.contract_start, existingDates: dates });
+  const { errors, warnings } = checkProgress(dataDate, rows, { contractStart: meta.contract_start, existingDates: dates }, lang);
   if (errors.length) return { errors, warnings, values: valuesOf(f) };
   if (warnings.length && f.get("confirm") !== "1") return { warnings, values: { ...valuesOf(f), confirm: "1" } };
 
   saveProgressRows(meta.id, dataDate, rows.map((r) => ({ activityId: r.activityId, pct: r.pct / 100, cost: r.cost })), user.id);
   const isNew = !dates.includes(dataDate);
-  logAudit(meta.id, user, isNew ? "تحديث تقدم جديد" : "تعديل تحديث تقدم",
-    `Data Date ${dataDate} · ${rows.length} نشاط${warnings.length ? ` · ${warnings.length} تحذير مؤكَّد` : ""}`);
+  logAudit(meta.id, user, isNew ? "progress.new" : "progress.edit",
+    `Data Date ${dataDate} · ${rows.length} ✓${warnings.length ? ` · ⚠ ${warnings.length}` : ""}`);
   revalidatePath(`/projects/${meta.id}`, "layout");
-  return { ok: true, message: `انحفظ تحديث ${dataDate} لـ ${rows.length} نشاط`, values: { dataDate } };
+  return { ok: true, message: tr(`انحفظ تحديث ${dataDate} لـ ${rows.length} نشاط`, `Update ${dataDate} saved for ${rows.length} activities`), values: { dataDate } };
 }
 
 export async function removeDataDate(f: FormData) {
   const { user, meta } = await projectFor(s(f, "projectId"));
   const d = s(f, "dataDate");
   deleteDataDate(meta.id, d);
-  logAudit(meta.id, user, "حذف تحديث تقدم", `Data Date ${d}`);
+  logAudit(meta.id, user, "progress.delete", `Data Date ${d}`);
   revalidatePath(`/projects/${meta.id}`, "layout");
   redirect(`/projects/${meta.id}/progress`);
 }

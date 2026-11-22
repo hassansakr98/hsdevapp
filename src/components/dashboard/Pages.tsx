@@ -12,6 +12,8 @@ import {
   AMBER, BAD, BLUE, CORAL, Card, GREEN, GRID, Kpi, TEAL, fmtDate, money, monthLabel, pct, tooltipStyle, type PageProps,
 } from "./ui";
 import { WorkTable } from "./Overview";
+import { useTr } from "../LangProvider";
+import type { Tr } from "@/lib/i18n";
 
 const axis = { stroke: "#94a3b8", fontSize: 11 };
 const dateAxis = { dataKey: "date", tickFormatter: monthLabel, minTickGap: 40, ...axis };
@@ -35,26 +37,27 @@ function Toggle<T extends string>({ value, options, onChange }: { value: T; opti
   );
 }
 
-const GROUPS: [GroupKey, string][] = [
-  ["name", "Type of Work"], ["zone", "Zone"], ["floor", "Floor"], ["category", "Category"], ["type", "Type"],
+const groups = (tr: Tr): [GroupKey, string][] => [
+  ["name", tr("نوع العمل", "Type of Work")], ["zone", "Zone"], ["floor", tr("الطابق", "Floor")], ["category", tr("التصنيف", "Category")], ["type", tr("النوع", "Type")],
 ];
 
 /* 1 & 2 — Progress curves (cost / manhour) */
 export function ProgressCurve({ project, acts, dataDate, metric }: PageProps & { metric: Metric }) {
+  const tr = useTr();
   const data = sCurve(project, acts, dataDate, metric);
   const s = snapshot(project, acts, dataDate);
   const planned = metric === "cost" ? s.plannedPct : s.plannedPctMh;
   const actual = metric === "cost" ? s.actualPct : s.actualPctMh;
-  const label = metric === "cost" ? "Cost" : "Manhour";
+  const label = metric === "cost" ? tr("التكلفة", "Cost") : tr("الساعات", "Manhours");
   return (
     <>
       <section className="grid grid-cols-4 gap-3">
-        <Kpi label={`Budget (${label})`} value={metric === "cost" ? money(s.bac) : `${money(s.bacMh)} MH`} />
-        <Kpi label="Planned %" value={pct(planned)} />
-        <Kpi label="Actual %" value={pct(actual)} bad={actual < planned} />
-        <Kpi label="Variance %" value={pct(actual - planned)} bad={actual < planned} />
+        <Kpi label={`${tr("الميزانية", "Budget")} (${label})`} value={metric === "cost" ? money(s.bac) : `${money(s.bacMh)} MH`} />
+        <Kpi label={tr("المخطط %", "Planned %")} value={pct(planned)} />
+        <Kpi label={tr("الفعلي %", "Actual %")} value={pct(actual)} bad={actual < planned} />
+        <Kpi label={tr("الانحراف %", "Variance %")} value={pct(actual - planned)} bad={actual < planned} />
       </section>
-      <Card title={`Cumulative Progress Curve - ${label}`}>
+      <Card title={`${tr("منحنى التقدم التراكمي", "Cumulative progress curve")} - ${label}`}>
         <H>
           <ResponsiveContainer>
             <ComposedChart data={data}>
@@ -71,7 +74,7 @@ export function ProgressCurve({ project, acts, dataDate, metric }: PageProps & {
           </ResponsiveContainer>
         </H>
       </Card>
-      <Card title={`Monthly Progress - ${label}`}>
+      <Card title={`${tr("التقدم الشهري", "Monthly progress")} - ${label}`}>
         <div className="h-60">
           <ResponsiveContainer>
             <BarChart data={data}>
@@ -80,8 +83,8 @@ export function ProgressCurve({ project, acts, dataDate, metric }: PageProps & {
               <YAxis {...axis} unit="%" />
               <Tooltip labelFormatter={(l) => fmtDate(String(l))} formatter={pctFmt} contentStyle={tooltipStyle} />
               <Legend />
-              <Bar dataKey="periodPlanned" name="Planned (month)" fill={TEAL} />
-              <Bar dataKey="periodActual" name="Actual (month)" fill={CORAL} />
+              <Bar dataKey="periodPlanned" name={tr("مخطط (شهري)", "Planned (month)")} fill={TEAL} />
+              <Bar dataKey="periodActual" name={tr("فعلي (شهري)", "Actual (month)")} fill={CORAL} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -92,17 +95,18 @@ export function ProgressCurve({ project, acts, dataDate, metric }: PageProps & {
 
 /* 3 — Progress matrix */
 export function ProgressMatrix({ project, acts, dataDate }: PageProps) {
+  const tr = useTr();
   const [rowKey, setRow] = useState<GroupKey>("zone");
   const [colKey, setCol] = useState<GroupKey>("floor");
   const m = matrix(project, acts, dataDate, rowKey, colKey);
   const color = (v: number) => (v >= -0.001 ? GREEN : v > -0.05 ? "#d97706" : BAD);
   return (
-    <Card title="Progress Matrix (Actual % / Planned %)">
+    <Card title={tr("مصفوفة التقدم (فعلي % / مخطط %)", "Progress matrix (Actual % / Planned %)")}>
       <div className="mb-3 flex flex-wrap items-center gap-3 text-sm">
-        <span>Rows</span>
-        <Toggle value={rowKey} options={GROUPS} onChange={setRow} />
-        <span>Columns</span>
-        <Toggle value={colKey} options={GROUPS} onChange={setCol} />
+        <span>{tr("الصفوف", "Rows")}</span>
+        <Toggle value={rowKey} options={groups(tr)} onChange={setRow} />
+        <span>{tr("الأعمدة", "Columns")}</span>
+        <Toggle value={colKey} options={groups(tr)} onChange={setCol} />
       </div>
       <div className="overflow-auto">
         <table className="w-full text-sm">
@@ -121,7 +125,7 @@ export function ProgressMatrix({ project, acts, dataDate }: PageProps) {
                     {s ? (
                       <div className="rounded p-1.5" style={{ background: `${color(s.variancePct)}33`, border: `1px solid ${color(s.variancePct)}` }}>
                         <div className="font-semibold">{pct(s.actualPct, 1)}</div>
-                        <div className="text-xs text-muted">of {pct(s.plannedPct, 1)}</div>
+                        <div className="text-xs text-muted">{tr("من", "of")} {pct(s.plannedPct, 1)}</div>
                       </div>
                     ) : <span className="text-slate-300">—</span>}
                   </td>
@@ -132,9 +136,9 @@ export function ProgressMatrix({ project, acts, dataDate }: PageProps) {
         </table>
       </div>
       <div className="mt-3 flex gap-4 text-xs text-muted">
-        <span><span className="inline-block h-2 w-2 rounded-full" style={{ background: GREEN }} /> On / ahead</span>
-        <span><span className="inline-block h-2 w-2 rounded-full" style={{ background: "#d97706" }} /> Behind &lt; 5%</span>
-        <span><span className="inline-block h-2 w-2 rounded-full" style={{ background: BAD }} /> Behind ≥ 5%</span>
+        <span><span className="inline-block h-2 w-2 rounded-full" style={{ background: GREEN }} /> {tr("حسب الخطة / متقدم", "On / ahead")}</span>
+        <span><span className="inline-block h-2 w-2 rounded-full" style={{ background: "#d97706" }} /> {tr("متأخر < 5%", "Behind < 5%")}</span>
+        <span><span className="inline-block h-2 w-2 rounded-full" style={{ background: BAD }} /> {tr("متأخر ≥ 5%", "Behind ≥ 5%")}</span>
       </div>
     </Card>
   );
@@ -142,6 +146,7 @@ export function ProgressMatrix({ project, acts, dataDate }: PageProps) {
 
 /* 4 — Planned vs actual bars by any grouping */
 export function PlannedActualBars({ project, acts, dataDate }: PageProps) {
+  const tr = useTr();
   const [key, setKey] = useState<GroupKey>("name");
   const data = groupBy(project, acts, dataDate, key)
     .map(({ name, s }) => ({
@@ -152,8 +157,8 @@ export function PlannedActualBars({ project, acts, dataDate }: PageProps) {
     }))
     .sort((a, b) => b.Early - a.Early);
   return (
-    <Card title="Planned vs Actual %">
-      <div className="mb-3"><Toggle value={key} options={GROUPS} onChange={setKey} /></div>
+    <Card title={tr("المخطط مقابل الفعلي %", "Planned vs actual %")}>
+      <div className="mb-3"><Toggle value={key} options={groups(tr)} onChange={setKey} /></div>
       <div style={{ height: Math.max(300, data.length * 34) }}>
         <ResponsiveContainer>
           <BarChart data={data} layout="vertical" margin={{ left: 40 }}>
@@ -174,17 +179,18 @@ export function PlannedActualBars({ project, acts, dataDate }: PageProps) {
 
 /* 5 — Activity progress trend % */
 export function ActivityTrendPct({ project, acts, dataDate }: PageProps) {
+  const tr = useTr();
   const works = [...new Set(acts.map((a) => a.name))].sort();
   const [work, setWork] = useState("All");
   const subset = work === "All" ? acts : acts.filter((a) => a.name === work);
   const data = evTrend(project, subset, dataDate);
   return (
     <>
-      <Card title="Activity Progress Trend %">
+      <Card title={tr("تريند إنجاز الأنشطة %", "Activity progress trend %")}>
         <label className="mb-3 flex items-center gap-2 text-sm">
-          Type of Work
+          {tr("نوع العمل", "Type of Work")}
           <select value={work} onChange={(e) => setWork(e.target.value)} className="rounded border border-line bg-panel px-2 py-1 text-brand">
-            <option>All</option>
+            <option value="All">{tr("الكل", "All")}</option>
             {works.map((w) => <option key={w}>{w}</option>)}
           </select>
         </label>
@@ -204,7 +210,7 @@ export function ActivityTrendPct({ project, acts, dataDate }: PageProps) {
           </ResponsiveContainer>
         </H>
       </Card>
-      <Card title="Progress by Type of Work" className="max-h-96 overflow-auto">
+      <Card title={tr("التقدم حسب نوع العمل", "Progress by type of work")} className="max-h-96 overflow-auto">
         <WorkTable works={byWork(project, acts, dataDate)} />
       </Card>
     </>
@@ -213,16 +219,17 @@ export function ActivityTrendPct({ project, acts, dataDate }: PageProps) {
 
 /* 6 — EV trend (PV / EV / AC) */
 export function ActivityTrendEV({ project, acts, dataDate }: PageProps) {
+  const tr = useTr();
   const data = evTrend(project, acts, dataDate);
   const last = data.at(-1);
   return (
     <>
       <section className="grid grid-cols-3 gap-3">
-        <Kpi label="Planned Value (PV)" value={money(last?.pv ?? 0)} />
-        <Kpi label="Earned Value (EV)" value={money(last?.ev ?? 0)} bad={(last?.ev ?? 0) < (last?.pv ?? 0)} />
-        <Kpi label="Actual Cost (AC)" value={money(last?.ac ?? 0)} bad={(last?.ac ?? 0) > (last?.ev ?? 0)} />
+        <Kpi label={tr("القيمة المخططة PV", "Planned Value (PV)")} value={money(last?.pv ?? 0)} />
+        <Kpi label={tr("القيمة المكتسبة EV", "Earned Value (EV)")} value={money(last?.ev ?? 0)} bad={(last?.ev ?? 0) < (last?.pv ?? 0)} />
+        <Kpi label={tr("التكلفة الفعلية AC", "Actual Cost (AC)")} value={money(last?.ac ?? 0)} bad={(last?.ac ?? 0) > (last?.ev ?? 0)} />
       </section>
-      <Card title="PV / EV / AC Trend">
+      <Card title={tr("تريند PV / EV / AC", "PV / EV / AC trend")}>
         <H>
           <ResponsiveContainer>
             <LineChart data={data}>
@@ -244,10 +251,11 @@ export function ActivityTrendEV({ project, acts, dataDate }: PageProps) {
 
 /* 7 — Cost variance trend */
 export function CostVarianceTrend({ project, acts, dataDate }: PageProps) {
+  const tr = useTr();
   const data = evTrend(project, acts, dataDate);
   return (
     <>
-      <Card title="Cost Variance (CV = EV − AC) & Schedule Variance (SV = EV − PV)">
+      <Card title={tr("انحراف التكلفة (CV = EV − AC) وانحراف الجدول (SV = EV − PV)", "Cost variance (CV = EV − AC) & schedule variance (SV = EV − PV)")}>
         <H>
           <ResponsiveContainer>
             <ComposedChart data={data}>
@@ -265,7 +273,7 @@ export function CostVarianceTrend({ project, acts, dataDate }: PageProps) {
           </ResponsiveContainer>
         </H>
       </Card>
-      <Card title="CPI & SPI Trend">
+      <Card title={tr("تريند CPI وSPI", "CPI & SPI trend")}>
         <div className="h-60">
           <ResponsiveContainer>
             <LineChart data={data}>
@@ -287,18 +295,19 @@ export function CostVarianceTrend({ project, acts, dataDate }: PageProps) {
 
 /* 8 — Delay / ahead trend */
 export function DelayTrend({ project, acts, dataDate }: PageProps) {
+  const tr = useTr();
   const data = evTrend(project, acts, dataDate);
   const delay = delayDays(project, acts, dataDate);
   const worst = data.reduce((m, d) => Math.min(m, d.delay), 0);
   return (
     <>
       <section className="grid grid-cols-4 gap-3">
-        <Kpi label="Current Delay/Ahead (Days)" value={String(delay)} bad={delay < 0} />
-        <Kpi label="Worst Delay (Days)" value={String(worst)} bad={worst < 0} />
-        <Kpi label="Contract Finish" value={fmtDate(project.contractFinish)} />
-        <Kpi label="Forecasted Finish" value={fmtDate(addDays(project.contractFinish, -delay))} bad={delay < 0} />
+        <Kpi label={tr("التأخير/التقدم الحالي (يوم)", "Current delay/ahead (days)")} value={String(delay)} bad={delay < 0} />
+        <Kpi label={tr("أسوأ تأخير (يوم)", "Worst delay (days)")} value={String(worst)} bad={worst < 0} />
+        <Kpi label={tr("نهاية العقد", "Contract finish")} value={fmtDate(project.contractFinish)} />
+        <Kpi label={tr("الانتهاء المتوقع", "Forecast finish")} value={fmtDate(addDays(project.contractFinish, -delay))} bad={delay < 0} />
       </section>
-      <Card title="Project Delay / Ahead Trend (Days)">
+      <Card title={tr("تريند تأخير/تقدم المشروع (يوم)", "Project delay / ahead trend (days)")}>
         <H>
           <ResponsiveContainer>
             <ComposedChart data={data}>
@@ -307,13 +316,13 @@ export function DelayTrend({ project, acts, dataDate }: PageProps) {
               <YAxis {...axis} />
               <Tooltip labelFormatter={(l) => fmtDate(String(l))} contentStyle={tooltipStyle} />
               <ReferenceLine y={0} stroke="#888" />
-              <Area type="monotone" dataKey="delay" name="Delay (days)" stroke={CORAL} fill={CORAL} fillOpacity={0.25} />
+              <Area type="monotone" dataKey="delay" name={tr("التأخير (يوم)", "Delay (days)")} stroke={CORAL} fill={CORAL} fillOpacity={0.25} />
             </ComposedChart>
           </ResponsiveContainer>
         </H>
       </Card>
       <p className="text-xs text-gray-400">
-        Delay uses the Earned Schedule method: the date on which the planned value equals today&apos;s earned value, compared with the data date.
+        {tr("التأخير محسوب بطريقة Earned Schedule: التاريخ اللي القيمة المخططة فيه بتساوي القيمة المكتسبة اليوم، مقارنة مع Data Date.", "Delay uses the Earned Schedule method: the date on which the planned value equals today's earned value, compared with the data date.")}
       </p>
     </>
   );
@@ -321,6 +330,7 @@ export function DelayTrend({ project, acts, dataDate }: PageProps) {
 
 /* 9 — Cost variance breakdown */
 export function CostVarianceBreakdown({ project, acts, dataDate }: PageProps) {
+  const tr = useTr();
   const [key, setKey] = useState<GroupKey>("name");
   const rows = groupBy(project, acts, dataDate, key)
     .map(({ name, s }) => ({ name, ...s, cv: s.ev - s.ac, sv: s.ev - s.pv }))
@@ -328,8 +338,8 @@ export function CostVarianceBreakdown({ project, acts, dataDate }: PageProps) {
     .sort((a, b) => a.cv - b.cv);
   return (
     <>
-      <Card title="Cost Variance Breakdown (CV = EV − AC)">
-        <div className="mb-3"><Toggle value={key} options={GROUPS} onChange={setKey} /></div>
+      <Card title={tr("تفصيل انحراف التكلفة (CV = EV − AC)", "Cost variance breakdown (CV = EV − AC)")}>
+        <div className="mb-3"><Toggle value={key} options={groups(tr)} onChange={setKey} /></div>
         <div style={{ height: Math.max(260, rows.length * 30) }}>
           <ResponsiveContainer>
             <BarChart data={rows} layout="vertical" margin={{ left: 40 }}>
@@ -348,7 +358,7 @@ export function CostVarianceBreakdown({ project, acts, dataDate }: PageProps) {
       <Card className="overflow-auto">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-muted text-left">
-            <tr>{["Name", "BAC", "PV", "EV", "AC", "CV", "SV", "CPI", "SPI"].map((h) => <th key={h} className="p-1.5">{h}</th>)}</tr>
+            <tr>{[tr("الاسم", "Name"), "BAC", "PV", "EV", "AC", "CV", "SV", "CPI", "SPI"].map((h) => <th key={h} className="p-1.5">{h}</th>)}</tr>
           </thead>
           <tbody>
             {rows.map((r) => (
@@ -373,22 +383,23 @@ export function CostVarianceBreakdown({ project, acts, dataDate }: PageProps) {
 
 /* 10 — Earned value analysis */
 export function EarnedValueAnalysis({ project, acts, dataDate }: PageProps) {
+  const tr = useTr();
   const s = snapshot(project, acts, dataDate);
   const e = evm(s);
   const rows: [string, string, string, boolean?][] = [
-    ["BAC", "Budget at Completion", money(s.bac)],
-    ["PV", "Planned Value", money(s.pv)],
-    ["EV", "Earned Value", money(s.ev)],
-    ["AC", "Actual Cost", money(s.ac)],
-    ["SV", "Schedule Variance = EV − PV", money(e.sv), e.sv < 0],
-    ["CV", "Cost Variance = EV − AC", money(e.cv), e.cv < 0],
-    ["SPI", "Schedule Performance Index = EV / PV", s.spi.toFixed(3), s.spi < 1],
-    ["CPI", "Cost Performance Index = EV / AC", s.cpi.toFixed(3), s.cpi < 1],
-    ["EAC", "Estimate at Completion = BAC / CPI", money(e.eac), e.eac > s.bac],
+    ["BAC", tr("الميزانية عند الانتهاء", "Budget at Completion"), money(s.bac)],
+    ["PV", tr("القيمة المخططة", "Planned Value"), money(s.pv)],
+    ["EV", tr("القيمة المكتسبة", "Earned Value"), money(s.ev)],
+    ["AC", tr("التكلفة الفعلية", "Actual Cost"), money(s.ac)],
+    ["SV", tr("انحراف الجدول = EV − PV", "Schedule Variance = EV − PV"), money(e.sv), e.sv < 0],
+    ["CV", tr("انحراف التكلفة = EV − AC", "Cost Variance = EV − AC"), money(e.cv), e.cv < 0],
+    ["SPI", tr("مؤشر أداء الجدول = EV / PV", "Schedule Performance Index = EV / PV"), s.spi.toFixed(3), s.spi < 1],
+    ["CPI", tr("مؤشر أداء التكلفة = EV / AC", "Cost Performance Index = EV / AC"), s.cpi.toFixed(3), s.cpi < 1],
+    ["EAC", tr("التكلفة المتوقعة عند الانتهاء = BAC / CPI", "Estimate at Completion = BAC / CPI"), money(e.eac), e.eac > s.bac],
     ["EAC (CPI×SPI)", "AC + (BAC − EV) / (CPI × SPI)", money(e.eacCombined), e.eacCombined > s.bac],
-    ["ETC", "Estimate to Complete = EAC − AC", money(e.etc)],
-    ["VAC", "Variance at Completion = BAC − EAC", money(e.vac), e.vac < 0],
-    ["TCPI", "To-Complete Performance Index = (BAC − EV) / (BAC − AC)", e.tcpi.toFixed(3), e.tcpi > 1],
+    ["ETC", tr("المتبقي للإنجاز = EAC − AC", "Estimate to Complete = EAC − AC"), money(e.etc)],
+    ["VAC", tr("الانحراف عند الانتهاء = BAC − EAC", "Variance at Completion = BAC − EAC"), money(e.vac), e.vac < 0],
+    ["TCPI", tr("مؤشر الأداء المطلوب = (BAC − EV) / (BAC − AC)", "To-Complete Performance Index = (BAC − EV) / (BAC − AC)"), e.tcpi.toFixed(3), e.tcpi > 1],
   ];
   const bars = [
     { name: "BAC", value: s.bac, fill: BLUE },
@@ -406,7 +417,7 @@ export function EarnedValueAnalysis({ project, acts, dataDate }: PageProps) {
         <Kpi label="VAC" value={money(e.vac)} bad={e.vac < 0} />
       </section>
       <section className="grid grid-cols-2 gap-3">
-        <Card title="Earned Value Indicators">
+        <Card title={tr("مؤشرات القيمة المكتسبة", "Earned value indicators")}>
           <table className="w-full text-sm">
             <tbody>
               {rows.map(([k, desc, v, bad]) => (
@@ -419,7 +430,7 @@ export function EarnedValueAnalysis({ project, acts, dataDate }: PageProps) {
             </tbody>
           </table>
         </Card>
-        <Card title="Budget vs Forecast">
+        <Card title={tr("الميزانية مقابل المتوقع", "Budget vs forecast")}>
           <H>
             <ResponsiveContainer>
               <BarChart data={bars}>

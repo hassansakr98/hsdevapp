@@ -31,8 +31,14 @@
 html { background: var(--color-canvas); color: var(--color-ink); }
 body { font-family: var(--font-sans); }
 
-/* numbers stay left-to-right inside Arabic text */
+/* Numbers always read left-to-right (so "-16" stays "-16" in Arabic),
+   while their alignment still follows the page direction (text-start / text-end). */
 .num { direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular-nums; }
+[dir="rtl"] .num { text-align: right; }
+[dir="rtl"] .num.text-end { text-align: left; }
+[dir="rtl"] .num.text-center { text-align: center; }
+/* inline runs that must read left-to-right inside Arabic (dates ranges, formulas) */
+.ltr { direction: ltr; unicode-bidi: isolate; }
 
 input[type="number"]::-webkit-inner-spin-button { opacity: 0.4; }
 
