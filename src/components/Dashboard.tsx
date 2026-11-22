@@ -56,6 +56,14 @@ export default function Dashboard({
             {n}
           </button>
         ))}
+        <a
+          href={`/projects/${project.id}/report?${new URLSearchParams({ ...f, print: "1" })}`}
+          target="_blank"
+          rel="noopener"
+          className="mt-2 rounded-lg bg-[#f4b942] px-2 py-2.5 text-center text-sm font-semibold text-[#12303a] hover:brightness-110"
+        >
+          ⬇ Export PDF
+        </a>
         <div className="mt-auto border-t border-[#454a5c] pt-3 text-sm">
           <div className="font-medium">{user.name}</div>
           <div className="text-xs text-gray-400">{user.company}</div>
