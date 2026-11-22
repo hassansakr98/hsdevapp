@@ -26,6 +26,41 @@ db.exec(`
     role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('owner','admin','member')),
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
+  CREATE TABLE IF NOT EXISTS projects (
+    id TEXT PRIMARY KEY,
+    company_id TEXT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    contract_start TEXT NOT NULL,
+    contract_finish TEXT NOT NULL,
+    created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS projects_company ON projects(company_id);
+  CREATE TABLE IF NOT EXISTS activities (
+    project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    zone TEXT NOT NULL,
+    floor TEXT NOT NULL,
+    category TEXT NOT NULL,
+    type TEXT NOT NULL,
+    budget_cost REAL NOT NULL,
+    budget_manhours REAL NOT NULL,
+    early_start TEXT NOT NULL,
+    early_finish TEXT NOT NULL,
+    late_start TEXT NOT NULL,
+    late_finish TEXT NOT NULL,
+    PRIMARY KEY (project_id, id)
+  );
+  CREATE TABLE IF NOT EXISTS progress (
+    project_id TEXT NOT NULL,
+    activity_id TEXT NOT NULL,
+    data_date TEXT NOT NULL,
+    actual_pct REAL NOT NULL,
+    actual_cost REAL NOT NULL,
+    PRIMARY KEY (project_id, activity_id, data_date),
+    FOREIGN KEY (project_id, activity_id) REFERENCES activities(project_id, id) ON DELETE CASCADE
+  );
 `);
 
 export interface UserRow {

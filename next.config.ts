@@ -4,6 +4,8 @@ const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
+  // Allow Excel uploads up to 10MB through server actions
+  experimental: { serverActions: { bodySizeLimit: "10mb" } },
   turbopack: {
     rules: {
       "*.css": {

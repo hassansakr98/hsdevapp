@@ -10,6 +10,8 @@ import {
 } from "@/lib/calc";
 import type { Filters, Project } from "@/lib/types";
 import { logout } from "@/lib/auth";
+import { removeProject } from "@/lib/project-actions";
+import Link from "next/link";
 
 const TEAL = "#2a9d8f";
 const CORAL = "#f26d6d";
@@ -114,13 +116,15 @@ function Select({ label, value, options, onChange }: { label: string; value: str
   );
 }
 
-export default function Dashboard({ project, user }: { project: Project; user: { name: string; company: string } }) {
+export default function Dashboard({
+  project, user, canDelete = false,
+}: { project: Project; user: { name: string; company: string }; canDelete?: boolean }) {
   const uniq = (k: "zone" | "floor" | "category" | "type") =>
     ["All", ...new Set(project.activities.map((a) => a[k]))];
 
   const [f, setF] = useState<Filters>({
     zone: "All", floor: "All", category: "All", type: "All",
-    dataDate: project.dataDates[project.dataDates.length - 1],
+    dataDate: project.dataDates[project.dataDates.length - 1] ?? project.contractStart,
   });
   const set = (k: keyof Filters) => (v: string) => setF((s) => ({ ...s, [k]: v }));
 
@@ -151,7 +155,8 @@ export default function Dashboard({ project, user }: { project: Project; user: {
   return (
     <div className="flex min-h-screen bg-[#1f2230] text-white">
       <aside className="flex w-52 shrink-0 flex-col gap-3 border-r-4 border-[#f4b942] p-4">
-        <div className="mb-2 rounded bg-white py-3 text-center text-lg font-bold text-[#1f2a5a]">hsdevapp</div>
+        <Link href="/" className="mb-2 rounded bg-white py-3 text-center text-lg font-bold text-[#1f2a5a]">hsdevapp</Link>
+        <Link href="/" className="text-center text-sm text-[#2ec4b6] hover:underline">→ كل المشاريع</Link>
         {NAV.map((n, i) => (
           <button
             key={n}
@@ -163,6 +168,19 @@ export default function Dashboard({ project, user }: { project: Project; user: {
         <div className="mt-auto border-t border-[#454a5c] pt-3 text-sm">
           <div className="font-medium">{user.name}</div>
           <div className="text-xs text-gray-400">{user.company}</div>
+          {canDelete && (
+            <form
+              action={removeProject}
+              onSubmit={(e) => {
+                if (!confirm(`حذف المشروع "${project.name}" نهائياً؟ ما بينفع نرجّعه.`)) e.preventDefault();
+              }}
+            >
+              <input type="hidden" name="id" value={project.id} />
+              <button className="mt-2 w-full rounded-lg border border-gray-500 py-1.5 text-gray-300 hover:border-[#f26d6d] hover:text-[#f26d6d]">
+                حذف المشروع
+              </button>
+            </form>
+          )}
           <form action={logout}>
             <button className="mt-2 w-full rounded-lg border border-[#f26d6d] py-1.5 text-[#f26d6d] hover:bg-[#f26d6d] hover:text-white">
               تسجيل خروج
@@ -178,8 +196,13 @@ export default function Dashboard({ project, user }: { project: Project; user: {
           <Select label="Floor" value={f.floor} options={uniq("floor")} onChange={set("floor")} />
           <Select label="Category" value={f.category} options={uniq("category")} onChange={set("category")} />
           <Select label="Type" value={f.type} options={uniq("type")} onChange={set("type")} />
-          <Select label="Data Date" value={f.dataDate} options={[...project.dataDates].reverse()} onChange={set("dataDate")} />
+          <Select label="Data Date" value={f.dataDate} options={project.dataDates.length ? [...project.dataDates].reverse() : [f.dataDate]} onChange={set("dataDate")} />
         </header>
+        {project.dataDates.length === 0 && (
+          <div className="rounded-lg bg-[#f4b942]/15 p-3 text-sm text-[#f4b942]">
+            No progress data yet — the Progress sheet was empty, so actual values show as 0.
+          </div>
+        )}
 
         <section className="grid grid-cols-6 gap-3">
           <Kpi label="Contract Start" value={fmtDate(project.contractStart)} />
