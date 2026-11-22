@@ -11,6 +11,9 @@ const plex = IBM_Plex_Sans_Arabic({
   weight: ["400", "500", "600", "700"],
 });
 
+// Every page depends on the language cookie, so render per request
+export const instant = false;
+
 export async function generateMetadata(): Promise<Metadata> {
   const ar = (await getLang()) === "ar";
   return {
