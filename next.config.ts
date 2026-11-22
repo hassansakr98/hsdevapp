@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  output: "standalone", // self-contained server for Docker / VPS
   cacheComponents: true,
   partialPrefetching: true,
   // Allow Excel uploads up to 10MB through server actions

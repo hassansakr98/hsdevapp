@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 // Local SQLite database (Node built-in). Swap for PostgreSQL before production.
-const dir = path.join(process.cwd(), "data");
+const dir = process.env.DATA_DIR || path.join(process.cwd(), "data");
 fs.mkdirSync(dir, { recursive: true });
 
 const g = globalThis as unknown as { __db?: DatabaseSync };
